@@ -24,7 +24,7 @@ class JointVAE(keras.Model):
                  categorical_dim: int = 16, 
                  alpha: float = 1.,
                  beta: float = 3e3, 
-                 eps_kl: float = 10e-5,
+                 eps_kl: float = 1e-7,
                  name = None, 
                  **kwargs):
         super().__init__(name = name)
@@ -143,7 +143,7 @@ class JointVAE(keras.Model):
 
               x = Add(name=f'add-b{j}_{i}')([x, r])
 
-        # reconstruction
+      # reconstruction
       reco = CenterCrop(*crop, name='crop')(x)
       reco = Conv2D(filters=int(out_channels), kernel_size=kernel, padding='same',
                       activation=tf.nn.sigmoid, name='conv-reco')(reco)
@@ -234,8 +234,6 @@ class JointVAE(keras.Model):
             
         ##### kl_categorical #####
         q_p = tf.nn.softmax(q, axis=-1) # Convert the categorical codes into probabilities
-        # KL divergence between gumbel-softmax distribution
-        self.eps_kl = 1e-7
         # Entropy of the logits
         h1 = q_p * tf.math.log(q_p + self.eps_kl)
         # Cross entropy with the categorical distribution
