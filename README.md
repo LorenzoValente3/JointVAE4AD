@@ -1,2 +1,2 @@
-# QJointVAE4AD
+# JointVAE4AD
 Disentangle joint and quantized continous and discrete representations. Repository for Master's thesis Project.
