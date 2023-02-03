@@ -77,7 +77,8 @@ class QJointVAE(keras.Model):
     def build_encoder(self, input_shape: tuple, depths: List[int], filters: List[int],
                     kernel=3, groups=None, 
                     qconv= "quantized_bits(16,6,alpha=1)",
-                    activation=quantized_relu(16,negative_slope=0.25), # negative_slope for leaky relu
+                    activation = tf.nn.leaky_relu ,
+                    # activation=quantized_relu(16,negative_slope=0.25), # negative_slope for leaky relu
                     **kwargs) -> tf.keras.Model:
         """Building the encoder architecture for the variational autoencoder. 
         The final encoding dimension can be chosen."""
@@ -88,35 +89,33 @@ class QJointVAE(keras.Model):
         x = images
 
         for j, depth in enumerate(depths):
-            x = QConv2DBatchnorm(filters=filters[j], kernel_size=kernel, strides=2, groups=groups if j > 0 else 1,
-                                padding='same',  
-                                kernel_quantizer=qconv, 
-                                bias_quantizer=qconv,
-                                kernel_regularizer=l2(0.0001), 
+            x = QConv2D(filters=filters[j], kernel_size=kernel, strides=2, groups=groups if j > 0 else 1,
+                                padding='same', 
+                                # kernel_regularizer=l1(0.0001), 
                                 **kwargs, name=f'dconv-b{j}')(x)
+            x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) #prova instance normalization
             x = Activation(activation, name=f'activ-b{j}')(x)
 
             # add residual blocks
             for i in range(depth):
                 r = x  # residual
 
-                x = QConv2DBatchnorm(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
-                                      padding='same',  
-                                      kernel_quantizer=qconv, 
-                                      bias_quantizer=qconv,
-                                      kernel_regularizer=l2(0.0001), 
-                                      **kwargs, name=f'conv1-b{j}_{i}')(x)
+                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
+                                padding='same', 
+                                # kernel_regularizer=l1(0.0001), 
+                                **kwargs, name=f'conv1-b{j}_{i}')(x)
+                x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
                 x = Activation(activation, name=f'activ1-b{j}_{i}')(x)
 
-                x = QConv2DBatchnorm(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
-                                      padding='same', 
-                                      kernel_quantizer=qconv, 
-                                      bias_quantizer=qconv,
-                                      kernel_regularizer=l2(0.0001), 
-                                      **kwargs, name=f'conv2-b{j}_{i}')(x)
+                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
+                                padding='same',
+                                # kernel_regularizer=l1(0.0001), 
+                                **kwargs, name=f'conv2-b{j}_{i}')(x)
+                x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
                 x = Activation(activation, name=f'activ2-b{j}_{i}')(x)
 
                 x = Add(name=f'add-b{j}_{i}')([x, r])
+
 
         z = Flatten()(x)
 
