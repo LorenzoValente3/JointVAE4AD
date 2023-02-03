@@ -37,10 +37,10 @@ def doWeights(model):
     # weights = np.concatenate(weights)
     # bins = np.linspace(np.min(weights), np.max(weights), 100)
 
-    bins = np.linspace(-.14, .14, 100)
+    bins = np.linspace(-.04, .04, 100)
     histosW = np.array(histosW, dtype='object')
     plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black')
-    # plt.legend(frameon=False,loc='upper right')
+    plt.legend(frameon=False,loc='upper right', fontsize = 'xx-small')
     plt.ylabel('Number of Weights')
     plt.xlabel('Weights')
     plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
