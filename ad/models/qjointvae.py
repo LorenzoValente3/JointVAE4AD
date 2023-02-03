@@ -119,9 +119,13 @@ class QJointVAE(keras.Model):
 
         z = Flatten()(x)
 
-        q = Dense ( units = self.categorical_dim, name='z_categorical')(z)
-        encoded_mean = Dense(units = self.latent_dim, name='z_mean')(z)
-        encoded_var = Dense(units = self.latent_dim, name='z_var')(z)
+        q = QDense(units = self.categorical_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
+                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_categorical')(z)
+        encoded_mean = QDense(units = self.latent_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
+                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_mean')(z)
+        encoded_var = QDense(units = self.latent_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
+                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_var')(z)
+        
         
         encoder_out = layers.joint_sampling(temp = self.temp, name='encoder_output')([encoded_mean, encoded_var, q])
 

@@ -92,7 +92,7 @@ class QJointVAE(keras.Model):
             x = QConv2D(filters=filters[j], kernel_size=kernel, strides=2, groups=groups if j > 0 else 1,
                                 padding='same', 
                                 # kernel_regularizer=l1(0.0001), 
-                                **kwargs, name=f'dconv-b{j}')(x)
+                                **kwargs, name=f'qdconv-b{j}')(x)
             x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) #prova instance normalization
             x = Activation(activation, name=f'activ-b{j}')(x)
 
@@ -103,14 +103,14 @@ class QJointVAE(keras.Model):
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
                                 padding='same', 
                                 # kernel_regularizer=l1(0.0001), 
-                                **kwargs, name=f'conv1-b{j}_{i}')(x)
+                                **kwargs, name=f'qconv1-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
                 x = Activation(activation, name=f'activ1-b{j}_{i}')(x)
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
                                 padding='same',
                                 # kernel_regularizer=l1(0.0001), 
-                                **kwargs, name=f'conv2-b{j}_{i}')(x)
+                                **kwargs, name=f'qconv2-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
                 x = Activation(activation, name=f'activ2-b{j}_{i}')(x)
 
