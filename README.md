@@ -1,2 +1,2 @@
 # QJointVAE4AD
-Disentangle continous and categorical latent space variable. Repository for Master's thesis Project.
+Disentangle joint and quantized continous and discrete representations. Repository for Master's thesis Project.
