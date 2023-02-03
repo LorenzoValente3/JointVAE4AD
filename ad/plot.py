@@ -14,6 +14,32 @@ CMAP2 = 'gist_heat_r'
 CMAP3 = 'Greys_r'
 DEFAULT_CMAP = None
 
+### Weight distribution
+def doWeights(model):
+
+    allWeightsByLayer = {}
+    for layer in model.layers:
+        if (layer._name).find("batch")!=-1 or len(layer.get_weights())<1:
+            continue 
+        weights=layer.weights[0].numpy().flatten()  
+        allWeightsByLayer[layer._name] = weights
+        print('Layer {}: % of zeros = {}'.format(layer._name,np.sum(weights==0)/np.size(weights)))
+
+    labelsW = []
+    histosW = []
+
+    for key in reversed(sorted(allWeightsByLayer.keys())):
+        labelsW.append(key)
+        histosW.append(allWeightsByLayer[key])
+
+    fig = plt.figure(figsize=(10,10))
+    bins = np.linspace(-1.5, 1.5, 50)
+    plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black')
+    plt.legend(frameon=False,loc='upper left')
+    plt.ylabel('Number of Weights')
+    plt.xlabel('Weights')
+    plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+
 
 def set_style(default_cmap=CMAP2, **kwargs):
 
