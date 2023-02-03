@@ -1,0 +1,12 @@
+numpy
+scipy
+tensorflow==2.8.0
+tensorflow-addons==0.16.1
+tensorflow-probability==0.16.0
+matplotlib
+pandas
+protobuf==3.20.*
+seaborn
+sklearn
+qkeras
+hls4ml[profiling]
