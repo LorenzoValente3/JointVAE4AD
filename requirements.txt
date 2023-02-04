@@ -7,6 +7,7 @@ matplotlib
 pandas
 protobuf==3.20.*
 seaborn
+umap-learn
 qkeras
 hls4ml[profiling]
 scikit-learn

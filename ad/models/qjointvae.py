@@ -94,6 +94,8 @@ class QJointVAE(keras.Model):
                                 # kernel_regularizer=l1(0.0001), 
                                 **kwargs, name=f'dconv-b{j}')(x)
             x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) #prova instance normalization
+            # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) #prova instance normalization
+
             x = Activation(activation, name=f'activ-b{j}')(x)
 
             # add residual blocks
@@ -105,6 +107,8 @@ class QJointVAE(keras.Model):
                                 # kernel_regularizer=l1(0.0001), 
                                 **kwargs, name=f'conv1-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
+                # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) #prova instance normalization
+
                 x = Activation(activation, name=f'activ1-b{j}_{i}')(x)
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
@@ -112,6 +116,8 @@ class QJointVAE(keras.Model):
                                 # kernel_regularizer=l1(0.0001), 
                                 **kwargs, name=f'conv2-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
+                # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) #prova instance normalization
+
                 x = Activation(activation, name=f'activ2-b{j}_{i}')(x)
 
                 x = Add(name=f'add-b{j}_{i}')([x, r])
