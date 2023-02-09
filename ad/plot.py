@@ -45,6 +45,28 @@ def doWeights(model):
     plt.xlabel('Weights')
     plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
 
+def WhiskerWeights(model):
+    """Function for plotting the weight distributions"""
+    allWeightsByLayer = {}
+    for layer in model.layers:
+        if (layer._name).find("batch")!=-1 or len(layer.get_weights())<1:
+            continue 
+        weights=layer.weights[0].numpy().flatten()  
+        allWeightsByLayer[layer._name] = weights
+    labelsW = []
+    dataW = []
+
+    for key in reversed(sorted(allWeightsByLayer.keys())):
+        labelsW.append(key)
+        dataW.append(allWeightsByLayer[key])
+    
+    fig = plt.figure(figsize=(10,10))
+    
+    # Create a whisker plot using the data
+    plt.boxplot(dataW, labels=labelsW, vert=False)
+    plt.xlabel('Weights')
+    plt.ylabel('Layers')
+    plt.figtext(0.2, 0.38, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
 
 def set_style(default_cmap=CMAP2, **kwargs):
 

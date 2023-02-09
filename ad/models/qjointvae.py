@@ -76,9 +76,9 @@ class QJointVAE(keras.Model):
     
     def build_encoder(self, input_shape: tuple, depths: List[int], filters: List[int],
                     kernel=3, groups=None, 
-                    qconv= "quantized_bits(16,6,alpha=1)",
-                    activation = tf.nn.leaky_relu ,
-                    # activation=quantized_relu(16,negative_slope=0.25), # negative_slope for leaky relu
+                    qconv= quantized_bits(16,6,alpha=1),
+                    activation = quantized_relu(16,6, negative_slope=0.25),
+                    qdense = quantized_bits(16,6,alpha=1),
                     **kwargs) -> tf.keras.Model:
         """Building the encoder architecture for the variational autoencoder. 
         The final encoding dimension can be chosen."""
@@ -96,7 +96,7 @@ class QJointVAE(keras.Model):
             x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) #prova instance normalization
             # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) #prova instance normalization
 
-            x = Activation(activation, name=f'activ-b{j}')(x)
+            x = QActivation(activation, name=f'activ-b{j}')(x)
 
             # add residual blocks
             for i in range(depth):
@@ -109,7 +109,7 @@ class QJointVAE(keras.Model):
                 x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
                 # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) #prova instance normalization
 
-                x = Activation(activation, name=f'activ1-b{j}_{i}')(x)
+                x = QActivation(activation, name=f'activ1-b{j}_{i}')(x)
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
                                 padding='same',
@@ -118,20 +118,19 @@ class QJointVAE(keras.Model):
                 x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
                 # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) #prova instance normalization
 
-                x = Activation(activation, name=f'activ2-b{j}_{i}')(x)
+                x = QActivation(activation, name=f'activ2-b{j}_{i}')(x)
 
                 x = Add(name=f'add-b{j}_{i}')([x, r])
 
 
         z = Flatten()(x)
 
-        q = QDense(units = self.categorical_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
-                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_categorical')(z)
-        encoded_mean = QDense(units = self.latent_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
-                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_mean')(z)
-        encoded_var = QDense(units = self.latent_dim, kernel_quantizer=quantized_bits(16,6,alpha=1),
-                     bias_quantizer=quantized_bits(16,6,alpha=1), name='z_var')(z)
-        
+        q = QDense(units = self.categorical_dim, kernel_quantizer=qdense,
+                     bias_quantizer=qdense, name='z_categorical')(z)
+        encoded_mean = QDense(units = self.latent_dim, kernel_quantizer=qdense,
+                     bias_quantizer=qdense, name='z_mean')(z)
+        encoded_var = QDense(units = self.latent_dim, kernel_quantizer=qdense,
+                     bias_quantizer=qdense, name='z_var')(z)
         
         encoder_out = layers.joint_sampling(temp = self.temp, name='encoder_output')([encoded_mean, encoded_var, q])
 
