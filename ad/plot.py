@@ -33,10 +33,6 @@ def doWeights(model):
     
     fig = plt.figure(figsize=(10,10))
     
-    # weights = [weight.numpy().flatten() for layer in model.layers for weight in layer.weights]
-    # weights = np.concatenate(weights)
-    # bins = np.linspace(np.min(weights), np.max(weights), 100)
-
     bins = np.linspace(-.15, .15, 100)
     histosW = np.array(histosW, dtype='object')
     plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black')
@@ -46,7 +42,7 @@ def doWeights(model):
     plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
 
 def WhiskerWeights(model):
-    """Function for plotting the weight distributions"""
+    """Function for plotting the Whisker plot of weights"""
     allWeightsByLayer = {}
     for layer in model.layers:
         if (layer._name).find("batch")!=-1 or len(layer.get_weights())<1:
@@ -63,6 +59,7 @@ def WhiskerWeights(model):
     fig = plt.figure(figsize=(10,10))
     
     # Create a whisker plot using the data
+    dataW = np.array(dataW, dtype='object')
     plt.boxplot(dataW, labels=labelsW, vert=False)
     plt.xlabel('Weights')
     plt.ylabel('Layers')

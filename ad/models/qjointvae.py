@@ -8,7 +8,7 @@ from tensorflow import keras
 from tensorflow.keras.layers import *
 from qkeras import *
 from qkeras.quantizers import *
-from tensorflow.keras.regularizers import l1, l2
+from tensorflow.keras.regularizers import *
 
 from typing import List
 
@@ -23,9 +23,9 @@ class QJointVAE(keras.Model):
     """ Quantized Joint VAE model"""      
   
     def __init__(self, 
-                 latent_dim: int = 32, 
+                 continous_latent: int = 32,
+                 discrete_latent: int = 16, 
                  temperature: float = 50.,
-                 categorical_dim: int = 16, 
                  alpha: float = 1.,
                  beta: float = 3e3, 
                  eps_kl: float = 1e-7,  
@@ -35,9 +35,9 @@ class QJointVAE(keras.Model):
 
 
         #parameter assignment
-        self.latent_dim = latent_dim
+        self.continous_latent = continous_latent
         self.temp = temperature #gumbel-softmax
-        self.categorical_dim = categorical_dim #gumbel-softmax
+        self.discrete_latent = discrete_latent #gumbel-softmax
         self.alpha = alpha
         self.beta = beta
         self.eps_kl = eps_kl # KL divergence between gumbel-softmax distribution
@@ -45,7 +45,8 @@ class QJointVAE(keras.Model):
 
         # build the encoder and decoder networks
         self.encoder = self.build_encoder(**kwargs.pop('encoder', {}))
-        self.decoder = self.build_decoder(latent_shape= self.encoder.output[-1].shape[1:] ,
+        self.sampling = layers.joint_sampling(temp = temperature, name='joint_sampling', **kwargs)
+        self.decoder = self.build_decoder(latent_shape = ( self.continous_latent + self.discrete_latent, ) ,
                                         **kwargs.pop('decoder', {}))
         
         #implementing the loss fct
@@ -71,7 +72,9 @@ class QJointVAE(keras.Model):
         ]
     
     def call(self, x, **kwargs):
-        q, mean, var, z= self.encoder(x, **kwargs)
+        q, mean, var = self.encoder(x, **kwargs)
+        z = self.sampling([mean, var, q])
+
         return self.decoder(z, **kwargs)
     
     def build_encoder(self, input_shape: tuple, depths: List[int], filters: List[int],
@@ -91,10 +94,10 @@ class QJointVAE(keras.Model):
         for j, depth in enumerate(depths):
             x = QConv2D(filters=filters[j], kernel_size=kernel, strides=2, groups=groups if j > 0 else 1,
                                 padding='same', 
-                                # kernel_regularizer=l1(0.0001), 
+                                # kernel_regularizer=l2(0.001) , 
                                 **kwargs, name=f'dconv-b{j}')(x)
-            x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) #prova instance normalization
-            # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) #prova instance normalization
+            x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) 
+            # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) 
 
             x = QActivation(activation, name=f'activ-b{j}')(x)
 
@@ -104,19 +107,19 @@ class QJointVAE(keras.Model):
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
                                 padding='same', 
-                                # kernel_regularizer=l1(0.0001), 
+                                # kernel_regularizer=l2(0.001) , 
                                 **kwargs, name=f'conv1-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
-                # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) #prova instance normalization
+                # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) 
 
                 x = QActivation(activation, name=f'activ1-b{j}_{i}')(x)
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
                                 padding='same',
-                                # kernel_regularizer=l1(0.0001), 
+                                # kernel_regularizer=l2(0.001) , 
                                 **kwargs, name=f'conv2-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
-                # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) #prova instance normalization
+                # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) 
 
                 x = QActivation(activation, name=f'activ2-b{j}_{i}')(x)
 
@@ -125,16 +128,14 @@ class QJointVAE(keras.Model):
 
         z = Flatten()(x)
 
-        q = QDense(units = self.categorical_dim, kernel_quantizer=qdense,
+        q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
-        encoded_mean = QDense(units = self.latent_dim, kernel_quantizer=qdense,
+        encoded_mean = QDense(units = self.continous_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_mean')(z)
-        encoded_var = QDense(units = self.latent_dim, kernel_quantizer=qdense,
+        encoded_var = QDense(units = self.continous_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_var')(z)
         
-        encoder_out = layers.joint_sampling(temp = self.temp, name='encoder_output')([encoded_mean, encoded_var, q])
-
-        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var, encoder_out], name='Res-Encoder')
+        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-Encoder')
 
     def build_decoder(self, latent_shape: tuple, depths: List[int], filters: List[int],
                     crop: tuple, activation=tf.nn.relu6, kernel=3, size=(5, 4, 256),
@@ -148,7 +149,7 @@ class QJointVAE(keras.Model):
 
       if len(latent_shape) == 1:
           x = ad.layers.SpatialBroadcast(width=size[1], height=size[0], name='spatial-broadcast')(latents)
-          x.set_shape((None, size[0], size[1], self.latent_dim + self. categorical_dim + 2))
+          x.set_shape((None, size[0], size[1], self.continous_latent + self. discrete_latent + 2))
           
           x = ad.layers.ConvLayer(filters=size[-1], kernel=kernel, name='conv-expand',
                                     activation=activation, **kwargs)(x)
@@ -180,7 +181,8 @@ class QJointVAE(keras.Model):
     @tf.function
     def train_step(self, data):
         with tf.GradientTape() as tape:
-            q, z_mean, z_log_var, z = self.encoder(data, training=True)
+            q, z_mean, z_log_var = self.encoder(data, training=True)
+            z = self.sampling([z_mean, z_log_var, q])
             reconstruction = self.decoder(z, training=True)
             
             #######################
@@ -207,7 +209,7 @@ class QJointVAE(keras.Model):
             # Entropy of the logits
             h1 = q_p * tf.math.log(q_p + self.eps_kl)
             # Cross entropy with the categorical distribution
-            h2 = q_p * tf.math.log(1. / self.categorical_dim + self.eps_kl)
+            h2 = q_p * tf.math.log(1. / self.discrete_latent + self.eps_kl)
             kl_disc_loss = tf.reduce_mean(tf.reduce_sum(h1- h2 , axis = 1 ) * self.beta, axis = 0)
             # kl_disc_loss = abs(kl_disc_loss)
 
@@ -237,7 +239,8 @@ class QJointVAE(keras.Model):
 
     @tf.function
     def test_step(self, data):
-        q, z_mean, z_log_var, z = self.encoder(data, training=False)
+        q, z_mean, z_log_var = self.encoder(data, training=False)
+        z = self.sampling([z_mean, z_log_var, q])
         reconstruction = self.decoder(z, training=False)
             
         #######################
@@ -265,7 +268,7 @@ class QJointVAE(keras.Model):
         # Entropy of the logits
         h1 = q_p * tf.math.log(q_p + self.eps_kl)
         # Cross entropy with the categorical distribution
-        h2 = q_p * tf.math.log(1. / self.categorical_dim + self.eps_kl)
+        h2 = q_p * tf.math.log(1. / self.discrete_latent + self.eps_kl)
         kl_disc_loss = tf.reduce_mean(tf.reduce_sum(h1- h2 , axis = 1 ) * self.beta, axis = 0)
         # kl_disc_loss = abs(kl_disc_loss)
 

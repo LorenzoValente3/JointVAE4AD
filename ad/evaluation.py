@@ -168,16 +168,15 @@ def diff_energy(true: tf.Tensor, pred: tf.Tensor) -> np.ndarray:
 
     return (true_energy - pred_energy).numpy()
 
-# TODO(Lorenzo): define KL losses!
 
 def compute_scores(model, x: np.ndarray, batch_size=128 ):
-    """Scores computation for the AE model"""
-    # TODO(Lorenzo): add 3 fields for the KL
+    """Scores computation for the jointVAE model"""
     scores = dict(energy_diff=[], bce=[], dice=[], total=[], 
                   mse=[], kl_cont=[], kl_disc=[], kl_tot=[])
 
     for batch in tf.data.Dataset.from_tensor_slices(x).batch(batch_size):
-        q, z_mean, z_log_var, z = model.encoder(batch)
+        q, z_mean, z_log_var = model.encoder(batch)
+        z = model.sampling([z_mean, z_log_var, q])
         y = model.decoder(z)
         
         # scores
@@ -191,16 +190,15 @@ def compute_scores(model, x: np.ndarray, batch_size=128 ):
         ##### kl_continous #####
         kl_cont_loss = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
         kl_cont_loss = tf.reduce_sum(kl_cont_loss, axis=1)
-        kl_cont = model.beta * kl_cont_loss
-            
+        kl_cont = model.beta * kl_cont_loss    
 
         ##### kl_categorical #####
         q_p = tf.nn.softmax(q, axis=-1) # Convert the categorical codes into probabilities
         # Entropy of the logits
         h1 = q_p * tf.math.log(q_p + model.eps_kl)
         # Cross entropy with the categorical distribution
-        h2 = q_p * tf.math.log(1. / model.categorical_dim + model.eps_kl)
-        kl_disc = tf.reduce_sum(h1- h2 , axis = 1 ) * model.beta
+        h2 = q_p * tf.math.log(1. / model.discrete_latent + model.eps_kl)
+        kl_disc = tf.reduce_sum(h1 - h2 , axis = 1 ) * model.beta
 
         kl_tot = kl_cont + kl_disc
         

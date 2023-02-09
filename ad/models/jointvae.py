@@ -19,9 +19,9 @@ class JointVAE(keras.Model):
     """ Joint VAE model"""      
   
     def __init__(self, 
-                 latent_dim: int = 32, 
+                 continous_latent: int = 32, 
+                 discrete_latent: int = 16, 
                  temperature: float = 50.,
-                 categorical_dim: int = 16, 
                  alpha: float = 1.,
                  beta: float = 3e3, 
                  eps_kl: float = 1e-7,
@@ -31,9 +31,8 @@ class JointVAE(keras.Model):
 
 
         #parameter assignment
-        self.latent_dim = latent_dim
-        self.temp = temperature #gumbel-softmax
-        self.categorical_dim = categorical_dim #gumbel-softmax
+        self.continous_latent = continous_latent
+        self.discrete_latent = discrete_latent #gumbel-softmax
         self.alpha = alpha
         self.beta = beta
         self.eps_kl = eps_kl # KL divergence between gumbel-softmax distribution
@@ -41,7 +40,8 @@ class JointVAE(keras.Model):
 
         # build the encoder and decoder networks
         self.encoder = self.build_encoder(**kwargs.pop('encoder', {}))
-        self.decoder = self.build_decoder(latent_shape= self.encoder.output[-1].shape[1:] ,
+        self.sampling = layers.joint_sampling(temp = temperature, name='joint_sampling', **kwargs)
+        self.decoder = self.build_decoder(latent_shape = ( self.continous_latent + self.discrete_latent, ),
                                         **kwargs.pop('decoder', {}))
         
         #implementing the loss fct
@@ -67,12 +67,14 @@ class JointVAE(keras.Model):
         ]
     
     def call(self, x, **kwargs):
-        q, mean, var, z= self.encoder(x, **kwargs)
+        q, mean, var = self.encoder(x, **kwargs)
+        z = self.sampling([mean, var, q])
+
         return self.decoder(z, **kwargs)
     
     def build_encoder(self, input_shape: tuple, depths: List[int], filters: List[int],
                     activation=tf.nn.relu6, kernel=3, groups=None, other_layers=None,
-                    latent_dim=16, **kwargs) -> tf.keras.Model:
+                    **kwargs) -> tf.keras.Model:
         """Building the encoder architecture for the variational autoencoder. 
         The final encoding dimension can be chosen."""
 
@@ -101,13 +103,11 @@ class JointVAE(keras.Model):
 
         z = Flatten()(x)
 
-        q = Dense ( units = self.categorical_dim, name='z_categorical')(z)
-        encoded_mean = Dense(units = self.latent_dim, name='z_mean')(z)
-        encoded_var = Dense(units = self.latent_dim, name='z_var')(z)
+        q = Dense ( units = self.discrete_latent, name='z_categorical')(z)
+        encoded_mean = Dense(units = self.continous_latent, name='z_mean')(z)
+        encoded_var = Dense(units = self.continous_latent, name='z_var')(z)
         
-        encoder_out = layers.joint_sampling(temp = self.temp, name='encoder_output')([encoded_mean, encoded_var, q])
-
-        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var, encoder_out], name='Res-Encoder')
+        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-Encoder')
 
     def build_decoder(self, latent_shape: tuple, depths: List[int], filters: List[int],
                     crop: tuple, activation=tf.nn.relu6, kernel=3, size=(5, 4, 256),
@@ -121,7 +121,7 @@ class JointVAE(keras.Model):
 
       if len(latent_shape) == 1:
           x = ad.layers.SpatialBroadcast(width=size[1], height=size[0], name='spatial-broadcast')(latents)
-          x.set_shape((None, size[0], size[1], self.latent_dim + self. categorical_dim + 2))
+          x.set_shape((None, size[0], size[1], self.continous_latent + self. discrete_latent + 2))
           
           x = ad.layers.ConvLayer(filters=size[-1], kernel=kernel, name='conv-expand',
                                     activation=activation, **kwargs)(x)
@@ -153,7 +153,8 @@ class JointVAE(keras.Model):
     @tf.function
     def train_step(self, data):
         with tf.GradientTape() as tape:
-            q, z_mean, z_log_var, z = self.encoder(data, training=True)
+            q, z_mean, z_log_var = self.encoder(data, training=True)
+            z = self.sampling([z_mean, z_log_var, q])
             reconstruction = self.decoder(z, training=True)
             
             #######################
@@ -180,7 +181,7 @@ class JointVAE(keras.Model):
             # Entropy of the logits
             h1 = q_p * tf.math.log(q_p + self.eps_kl)
             # Cross entropy with the categorical distribution
-            h2 = q_p * tf.math.log(1. / self.categorical_dim + self.eps_kl)
+            h2 = q_p * tf.math.log(1. / self.discrete_latent + self.eps_kl)
             kl_disc_loss = tf.reduce_mean(tf.reduce_sum(h1- h2 , axis = 1 ) * self.beta, axis = 0)
             # kl_disc_loss = abs(kl_disc_loss)
 
@@ -210,7 +211,8 @@ class JointVAE(keras.Model):
 
     @tf.function
     def test_step(self, data):
-        q, z_mean, z_log_var, z = self.encoder(data, training=False)
+        q, z_mean, z_log_var = self.encoder(data, training=False)
+        z = self.sampling([z_mean, z_log_var, q])
         reconstruction = self.decoder(z, training=False)
             
         #######################
@@ -237,7 +239,7 @@ class JointVAE(keras.Model):
         # Entropy of the logits
         h1 = q_p * tf.math.log(q_p + self.eps_kl)
         # Cross entropy with the categorical distribution
-        h2 = q_p * tf.math.log(1. / self.categorical_dim + self.eps_kl)
+        h2 = q_p * tf.math.log(1. / self.discrete_latent + self.eps_kl)
         kl_disc_loss = tf.reduce_mean(tf.reduce_sum(h1- h2 , axis = 1 ) * self.beta, axis = 0)
         # kl_disc_loss = abs(kl_disc_loss)
 
