@@ -307,11 +307,15 @@ def roc_losses(qcd_losses: dict, suep_losses: dict, scale='log', bins=100):
 
 
 def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100,
-                 legend_hist='upper right', legend_roc='lower right', fontsize=18):
+                 legend_hist='upper right', legend_roc='lower right', fontsize=18,
+                 save: str = None, path = 'plot'):
     """Plots a ROC curve using various losses as discriminator"""
     from sklearn.metrics import roc_auc_score, roc_curve
 
     curves = dict()
+    # Create the directory to save the plots if it does not already exist
+    if isinstance(save, str):
+        path = utils.makedir(path)
 
     for k, bkg_score in bkg_scores.items():
         other_score = [scores[k] for _, scores in signal_scores.items()]
@@ -359,6 +363,11 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
         ax2.legend(loc=str(legend_roc), fontsize=fontsize - 2)
 
         plt.tight_layout()
+
+        if isinstance(save, str):
+            path = utils.makedir(path)
+            plt.savefig(os.path.join(path, f'{save}-{k}.png'), bbox_inches='tight')
+
         plt.show()
 
     return curves

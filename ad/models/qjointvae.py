@@ -9,6 +9,7 @@ from tensorflow.keras.layers import *
 from qkeras import *
 from qkeras.quantizers import *
 from tensorflow.keras.regularizers import *
+from tensorflow.keras.layers import GlobalAveragePooling2D
 
 from typing import List
 
@@ -126,7 +127,8 @@ class QJointVAE(keras.Model):
                 x = Add(name=f'add-b{j}_{i}')([x, r])
 
 
-        z = Flatten()(x)
+        # z = Flatten()(x)
+        z = GlobalAveragePooling2D()(x)
 
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
