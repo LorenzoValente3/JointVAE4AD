@@ -127,15 +127,15 @@ class QJointVAE(keras.Model):
                 x = Add(name=f'add-b{j}_{i}')([x, r])
 
 
-        # z = Flatten()(x)
-        z = GlobalAveragePooling2D()(x)
+        z = Flatten()(x)
+        # z = GlobalAveragePooling2D()(x)
 
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
         encoded_mean = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, name='z_mean')(z)
+                     bias_quantizer=qdense, use_bias=False, name='z_mean')(z)
         encoded_var = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, name='z_var')(z)
+                     bias_quantizer=qdense, use_bias = False, name='z_var')(z)
         
         return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-Encoder')
 
