@@ -93,10 +93,13 @@ class QJointVAE(keras.Model):
         x = images
 
         for j, depth in enumerate(depths):
-            x = QConv2D(filters=filters[j], kernel_size=kernel, strides=2, groups=groups if j > 0 else 1,
-                                padding='same', 
-                                # kernel_regularizer=l2(0.001) , 
-                                **kwargs, name=f'dconv-b{j}')(x)
+            x = QConv2D(filters=filters[j], kernel_size=kernel, strides=2,
+                        groups=groups if j > 0 else 1,
+                        padding='same', 
+                        kernel_quantizer=qconv,
+                        bias_quantizer=qconv,
+                        # kernel_regularizer=l2(0.001) , 
+                        **kwargs, name=f'dconv-b{j}')(x)
             x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) 
             # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) 
 
@@ -106,19 +109,25 @@ class QJointVAE(keras.Model):
             for i in range(depth):
                 r = x  # residual
 
-                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
-                                padding='same', 
-                                # kernel_regularizer=l2(0.001) , 
-                                **kwargs, name=f'conv1-b{j}_{i}')(x)
+                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,
+                            groups=groups,
+                            kernel_quantizer=qconv,
+                            bias_quantizer=qconv,
+                            padding='same', 
+                            # kernel_regularizer=l2(0.001) , 
+                            **kwargs, name=f'conv1-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
                 # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) 
 
                 x = QActivation(activation, name=f'activ1-b{j}_{i}')(x)
 
-                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,groups=groups,
-                                padding='same',
-                                # kernel_regularizer=l2(0.001) , 
-                                **kwargs, name=f'conv2-b{j}_{i}')(x)
+                x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,
+                            groups=groups,
+                            kernel_quantizer=qconv,
+                            bias_quantizer=qconv,
+                            padding='same',
+                            # kernel_regularizer=l2(0.001) , 
+                            **kwargs, name=f'conv2-b{j}_{i}')(x)
                 x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
                 # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) 
 
@@ -126,9 +135,7 @@ class QJointVAE(keras.Model):
 
                 x = Add(name=f'add-b{j}_{i}')([x, r])
 
-
         z = Flatten()(x)
-        # z = GlobalAveragePooling2D()(x)
 
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
