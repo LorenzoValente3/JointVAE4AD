@@ -33,7 +33,7 @@ def doWeights(model):
     
     fig = plt.figure(figsize=(10,10))
     
-    bins = np.linspace(-.15, .15, 100)
+    bins = np.linspace(-.4, .4, 100)
     histosW = np.array(histosW, dtype='object')
     plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black')
     plt.legend(frameon=False,loc='upper right', fontsize = 'xx-small')
