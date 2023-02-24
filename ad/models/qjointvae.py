@@ -99,11 +99,11 @@ class QJointVAE(keras.Model):
                         kernel_quantizer=qconv,
                         bias_quantizer=qconv,
                         # kernel_regularizer=l2(0.001) , 
-                        **kwargs, name=f'dconv-b{j}')(x)
-            x = tfa.layers.InstanceNormalization(name=f'bn-b{j}')(x) 
+                        **kwargs, name=f'dconv_b{j}')(x)
+            x = tfa.layers.InstanceNormalization(name=f'in_b{j}')(x) 
             # x = BatchNormalization(center = False, scale = False, name=f'bn-b{j}')(x) 
 
-            x = QActivation(activation, name=f'activ-b{j}')(x)
+            x = QActivation(activation, name=f'activ_b{j}')(x)
 
             # add residual blocks
             for i in range(depth):
@@ -115,11 +115,11 @@ class QJointVAE(keras.Model):
                             bias_quantizer=qconv,
                             padding='same', 
                             # kernel_regularizer=l2(0.001) , 
-                            **kwargs, name=f'conv1-b{j}_{i}')(x)
-                x = tfa.layers.InstanceNormalization(name=f'bn1-b{j}_{i}')(x)
+                            **kwargs, name=f'conv1_b{j}_{i}')(x)
+                x = tfa.layers.InstanceNormalization(name=f'in1_b{j}_{i}')(x)
                 # x = BatchNormalization(center = False, scale = False, name=f'bn1-b{j}_{i}')(x) 
 
-                x = QActivation(activation, name=f'activ1-b{j}_{i}')(x)
+                x = QActivation(activation, name=f'activ1_b{j}_{i}')(x)
 
                 x = QConv2D(filters=filters[j], kernel_size=kernel, strides=1,
                             groups=groups,
@@ -127,24 +127,24 @@ class QJointVAE(keras.Model):
                             bias_quantizer=qconv,
                             padding='same',
                             # kernel_regularizer=l2(0.001) , 
-                            **kwargs, name=f'conv2-b{j}_{i}')(x)
-                x = tfa.layers.InstanceNormalization(name=f'bn2-b{j}_{i}')(x)
+                            **kwargs, name=f'conv2_b{j}_{i}')(x)
+                x = tfa.layers.InstanceNormalization(name=f'in2_b{j}_{i}')(x)
                 # x= BatchNormalization(center = False, scale = False, name=f'bn2-b{j}_{i}')(x) 
 
-                x = QActivation(activation, name=f'activ2-b{j}_{i}')(x)
+                x = QActivation(activation, name=f'activ2_b{j}_{i}')(x)
 
-                x = Add(name=f'add-b{j}_{i}')([x, r])
+                x = Add(name=f'add_b{j}_{i}')([x, r])
 
         z = Flatten()(x)
 
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
         encoded_mean = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, use_bias=False, name='z_mean')(z)
+                     bias_quantizer=qdense, use_bias=True, name='z_mean')(z)
         encoded_var = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, use_bias = False, name='z_var')(z)
+                     bias_quantizer=qdense, use_bias = True, name='z_var')(z)
         
-        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-Encoder')
+        return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-QEncoder')
 
     def build_decoder(self, latent_shape: tuple, depths: List[int], filters: List[int],
                     crop: tuple, activation=tf.nn.relu6, kernel=3, size=(5, 4, 256),
