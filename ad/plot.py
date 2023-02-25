@@ -22,7 +22,7 @@ def doWeights(model):
             continue 
         weights=layer.weights[0].numpy().flatten()  
         allWeightsByLayer[layer._name] = weights
-        print('Layer {}: % of zeros = {}'.format(layer._name,np.sum(weights==0)/np.size(weights)))
+        # print('Layer {}: % of zeros = {}'.format(layer._name,np.sum(weights==0)/np.size(weights)))
 
     labelsW = []
     histosW = []
@@ -33,13 +33,19 @@ def doWeights(model):
     
     fig = plt.figure(figsize=(10,10))
     
-    bins = np.linspace(-.4, .4, 100)
+    bins = np.linspace(-.4, .4, 50)
     histosW = np.array(histosW, dtype='object')
-    plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black')
+
+
+    colors = plt.get_cmap('turbo')(np.linspace(0, 1, 35))
+    
+    plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black', color=colors)
     plt.legend(frameon=False,loc='upper right', fontsize = 'xx-small')
     plt.ylabel('Number of Weights')
     plt.xlabel('Weights')
+    
     plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+    plt.show()
 
 def WhiskerWeights(model):
     """Function for plotting the Whisker plot of weights"""
