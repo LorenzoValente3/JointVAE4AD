@@ -135,6 +135,15 @@ class QJointVAE(keras.Model):
 
                 x = Add(name=f'add_b{j}_{i}')([x, r])
 
+        x = QConv2D(filters=2, kernel_size=3, strides=1,
+                            groups=2,
+                            kernel_quantizer=qconv,
+                            bias_quantizer=qconv,
+                            padding='same',
+                            # kernel_regularizer=l2(0.001) , 
+                            **kwargs, name=f'conv_fin')(x)
+        x = tfa.layers.InstanceNormalization(name=f'in_fin')(x)
+        
         z = Flatten()(x)
 
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
