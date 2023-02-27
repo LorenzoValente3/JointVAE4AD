@@ -33,7 +33,7 @@ def doWeights(model):
         histosW.append(allWeightsByLayer[key])
     
     mini = np.min(np.concatenate(histosW)) +0.12
-    maxi = np.max(np.concatenate(histosW)) -0.07
+    maxi = np.max(np.concatenate(histosW)) -0.17
 
     print(mini)
     print(maxi)
@@ -74,17 +74,18 @@ def WhiskerWeights(model):
     
     # Create a whisker plot using the data
     dataW = np.array(dataW, dtype='object')
-    bplot = plt.boxplot(dataW, labels=labelsW, vert=False, meanline=True )
+    bplot = plt.boxplot(dataW, labels=labelsW, vert=False, meanline=True, patch_artist=True)
     plt.xlabel('Weights')
     plt.ylabel('Layers')
     plt.figtext(0.2, 0.2, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
 
     # fill with colors
     colors = plt.get_cmap('turbo')(np.linspace(0.1, .9, i))
-    # for bplot in bplot1:
     for patch, color in zip(bplot['boxes'], colors):
         patch.set_facecolor(color)
-    plt.show()    
+    
+    plt.show()
+
 
 def set_style(default_cmap=CMAP2, **kwargs):
 
@@ -156,7 +157,7 @@ def plot_track(x: np.ndarray, **kwargs):
 
 
 def compare(*args, cmap=None, save: str = None, title: list = None,
-            path='plot', v_min=0.0, v_max=0.1, **kwargs):
+            path='plot', v_min=0.0, v_max=0.1, fontsize=18, **kwargs):
     assert len(args) > 0
     
     cmap = cmap or DEFAULT_CMAP
@@ -196,15 +197,15 @@ def compare(*args, cmap=None, save: str = None, title: list = None,
         e_t_max = np.max(x).item()
         e_t_tot = np.sum(x).item()
 
-        ax.set_title(f'{text}\n max E = {round(e_t_max, 2)}; total E = {round(e_t_tot, 2)}')
-        ax.set_xlabel(r'$\eta$ cell')
-        ax.set_ylabel(r'$\phi$ cell')
+        ax.set_title(f'{text}\n max E = {round(e_t_max, 2)}; total E = {round(e_t_tot, 2)}', fontsize=fontsize)
+        ax.set_xlabel(r'$\eta$ cell', fontsize=fontsize)
+        ax.set_ylabel(r'$\phi$ cell', fontsize=fontsize)
 
     plt.tight_layout()
 
     if isinstance(save, str):
         path = utils.makedir(path)
-        plt.savefig(os.path.join(path, f'{save}-{i}.png'), bbox_inches='tight')
+        plt.savefig(os.path.join(path, f'{save}.png'), bbox_inches='tight')
 
     plt.show()
 
