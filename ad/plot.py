@@ -17,13 +17,14 @@ DEFAULT_CMAP = None
 def doWeights(model):
     """Function for plotting the weight distributions"""
     allWeightsByLayer = {}
+    i=0
     for layer in model.layers:
         if (layer._name).find("batch")!=-1 or len(layer.get_weights())<1:
             continue 
         weights=layer.weights[0].numpy().flatten()  
         allWeightsByLayer[layer._name] = weights
         # print('Layer {}: % of zeros = {}'.format(layer._name,np.sum(weights==0)/np.size(weights)))
-
+        i+=1
     labelsW = []
     histosW = []
 
@@ -31,30 +32,37 @@ def doWeights(model):
         labelsW.append(key)
         histosW.append(allWeightsByLayer[key])
     
+    mini = np.min(np.concatenate(histosW)) +0.12
+    maxi = np.max(np.concatenate(histosW)) -0.07
+
+    print(mini)
+    print(maxi)
+
     fig = plt.figure(figsize=(10,10))
     
-    bins = np.linspace(-.4, .4, 50)
+    bins = np.linspace(mini, maxi, 150)
     histosW = np.array(histosW, dtype='object')
 
-
-    colors = plt.get_cmap('turbo')(np.linspace(0, 1, 35))
+    colors = plt.get_cmap('turbo')(np.linspace(0.1, .9, i))
     
     plt.hist(histosW,bins,histtype='stepfilled',stacked=True,label=labelsW, edgecolor='black', color=colors)
-    plt.legend(frameon=False,loc='upper right', fontsize = 'xx-small')
+    plt.legend(frameon=False,loc='upper right', fontsize = 'small')
     plt.ylabel('Number of Weights')
     plt.xlabel('Weights')
     
-    plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+    plt.figtext(0.2, 0.38,model._name, wrap=True, horizontalalignment='left',verticalalignment='center', fontsize='medium')
     plt.show()
 
 def WhiskerWeights(model):
     """Function for plotting the Whisker plot of weights"""
     allWeightsByLayer = {}
+    i=0
     for layer in model.layers:
         if (layer._name).find("batch")!=-1 or len(layer.get_weights())<1:
             continue 
         weights=layer.weights[0].numpy().flatten()  
         allWeightsByLayer[layer._name] = weights
+        i+=1
     labelsW = []
     dataW = []
 
@@ -66,10 +74,17 @@ def WhiskerWeights(model):
     
     # Create a whisker plot using the data
     dataW = np.array(dataW, dtype='object')
-    plt.boxplot(dataW, labels=labelsW, vert=False)
+    bplot = plt.boxplot(dataW, labels=labelsW, vert=False, meanline=True )
     plt.xlabel('Weights')
     plt.ylabel('Layers')
-    plt.figtext(0.2, 0.38, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+    plt.figtext(0.2, 0.2, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+
+    # fill with colors
+    colors = plt.get_cmap('turbo')(np.linspace(0.1, .9, i))
+    # for bplot in bplot1:
+    for patch, color in zip(bplot['boxes'], colors):
+        patch.set_facecolor(color)
+    plt.show()    
 
 def set_style(default_cmap=CMAP2, **kwargs):
 
