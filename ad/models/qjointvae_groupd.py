@@ -145,7 +145,7 @@ class QJointVAE_groupd(keras.Model):
         
         z = Flatten()(x)
 
-        units=10
+        units=31 # 24 buono ;da provare 32
         groups=1
         # slice x into groups (to save params)
         parts = []
