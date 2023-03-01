@@ -32,15 +32,15 @@ def doWeights(model):
         labelsW.append(key)
         histosW.append(allWeightsByLayer[key])
     
-    mini = np.min(np.concatenate(histosW)) +0.12
-    maxi = np.max(np.concatenate(histosW)) -0.17
+    mini = np.min(np.concatenate(histosW)) 
+    maxi = np.max(np.concatenate(histosW)) 
 
     print(mini)
     print(maxi)
 
     fig = plt.figure(figsize=(10,10))
     
-    bins = np.linspace(mini, maxi, 150)
+    bins = np.linspace(mini, maxi, 50)
     histosW = np.array(histosW, dtype='object')
 
     colors = plt.get_cmap('turbo')(np.linspace(0.1, .9, i))
@@ -330,11 +330,13 @@ def roc_losses(qcd_losses: dict, suep_losses: dict, scale='log', bins=100):
 
 def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100,
                  legend_hist='upper right', legend_roc='lower right', fontsize=18,
-                 save: str = None, path = 'plot'):
+                 x_limits: dict = None, save: str = None, path = 'plot'):
     """Plots a ROC curve using various losses as discriminator"""
     from sklearn.metrics import roc_auc_score, roc_curve
 
     curves = dict()
+    if not isinstance(x_limits, dict):
+        x_limits = {}
     # Create the directory to save the plots if it does not already exist
     if isinstance(save, str):
         path = utils.makedir(path)
@@ -347,6 +349,15 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
         ax1, ax2 = utils.get_plot_axes(rows=1, cols=2)
         loss_range = (min(bkg_score.min(), other_score.min()),
                       max(bkg_score.max(), other_score.max()))
+        limits = x_limits.get(k, float(loss_range[1]))
+
+        if isinstance(limits, tuple):
+            inf, sup = limits
+            plot_range = (max(inf, loss_range[0]), min(sup, loss_range[1]))
+        else:
+            assert isinstance(limits, (int, float))
+            plot_range = (loss_range[0], min(limits, loss_range[1]))
+
 
         # histogram
         ax1.hist(bkg_score, bins=bins, range=loss_range, density=True,
@@ -373,10 +384,10 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
             # ROC
             ax2.plot(fpr, tpr, label=f'{k} ({h}), AUC = {round(auc * 100, 2)}%')
 
-        # if k=='kl_cont':
-        #   ax1.set_xlim(0, 20)
-        ax1.set_xlabel(k)
+        
+        ax1.set_xlabel(k, fontsize=fontsize)
         ax1.set_ylabel('Probability', fontsize=fontsize)
+        ax1.set_xlim(*plot_range)
         ax1.legend(loc=str(legend_hist), fontsize=fontsize - 4)
 
         ax2.set_xlabel('Background efficiency (FPR)', fontsize=fontsize)
