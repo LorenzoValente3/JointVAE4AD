@@ -145,31 +145,22 @@ class QJointVAE_groupd(keras.Model):
         
         z = Flatten()(x)
 
-        units=31 # 24 buono ;da provare 32
+        units=24 # 24 
         groups=1
         # slice x into groups (to save params)
         parts = []
         group_units = units // groups
 
         kernel = QDense(group_units, name='kernel')
-
-        for i in range(groups):
-            if i == groups - 1:
-                part = z[:, -group_units:]
-            else:
-                part = z[:, group_units * i:group_units * (i + 1)]
-
-        parts.append(kernel(part))
-
-        h = Concatenate()(parts)
-
+        h = kernel(z[:, -group_units:])
+     
         q = QDense(units = self.discrete_latent, kernel_quantizer=qdense,
                      bias_quantizer=qdense, name='z_categorical')(z)
         encoded_mean = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, use_bias=True, name='z_mean')(h)
+                     bias_quantizer=qdense, use_bias=True, name='z_mean')(z)
         encoded_var = QDense(units = self.continous_latent, kernel_quantizer=qdense,
-                     bias_quantizer=qdense, use_bias = True, name='z_var')(h)
-        
+                     bias_quantizer=qdense, use_bias = True, name='z_var')(z)
+                
         return tf.keras.Model(inputs = images, outputs=[q, encoded_mean, encoded_var], name='Res-QEncoder')
 
     def build_decoder(self, latent_shape: tuple, depths: List[int], filters: List[int],
