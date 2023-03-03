@@ -77,7 +77,7 @@ def WhiskerWeights(model):
     bplot = plt.boxplot(dataW, labels=labelsW, vert=False, meanline=True, patch_artist=True)
     plt.xlabel('Weights')
     plt.ylabel('Layers')
-    plt.figtext(0.2, 0.2, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
+    plt.figtext(0.2, 0.25, model._name, wrap=True, horizontalalignment='left',verticalalignment='center')
 
     # fill with colors
     colors = plt.get_cmap('turbo')(np.linspace(0.1, .9, i))

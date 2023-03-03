@@ -135,7 +135,7 @@ class QJointVAE(keras.Model):
 
                 x = Add(name=f'add_b{j}_{i}')([x, r])
 
-        x = QConv2D(filters=2, kernel_size=3, strides=1,
+        x = QConv2D(filters=2, kernel_size=kernel, strides=1,
                             groups=2,
                             kernel_quantizer=qconv,
                             bias_quantizer=qconv,
