@@ -176,6 +176,9 @@ def compute_scores(model, x: np.ndarray, batch_size=128 ):
 
     for batch in tf.data.Dataset.from_tensor_slices(x).batch(batch_size):
         q, z_mean, z_log_var = model.encoder(batch)
+        # print(q.shape)
+        # break
+
         z = model.sampling([z_mean, z_log_var, q])
         y = model.decoder(z)
         
@@ -205,10 +208,64 @@ def compute_scores(model, x: np.ndarray, batch_size=128 ):
         # append scores                 
         for k, v in zip(scores.keys(), [bce, dice, energy, total,mse ,kl_cont, kl_disc, kl_tot]):
             scores[k].append(v)
-        # break
 
     return {k: np.concatenate(v) for k, v in scores.items()}
     # return scores
+
+def hls_array(filename :str):
+    q = []
+    mean = []
+    log_var = []
+
+    file = open(filename, 'r')
+    lines = file.readlines()
+    len(lines)
+
+    def convert_line(line: str) -> np.ndarray:
+        numbers = line.split()
+        array = np.array([float(n) for n in numbers])
+        return array.reshape((1, -1))
+
+    # read lines in chunks of three
+    for i in range(0, len(lines), 3):
+        q.append(convert_line(line=lines[i]))
+        mean.append(convert_line(line=lines[i + 1]))
+        log_var.append(convert_line(line=lines[i + 2]))
+
+    # concat everything
+    q = np.concatenate(q)
+    mean = np.concatenate(mean)
+    log_var = np.concatenate(log_var)
+
+    return q, mean, log_var
+
+
+def compute_hls_scores(model, q: np.ndarray, mean: np.ndarray, var: np.ndarray):
+    """Scores computation for the jointVAE model"""
+    scores = dict(kl_cont=[], kl_disc=[], kl_tot=[])
+    
+    for i in range(q.shape[0]):
+        q_i, z_mean_i, z_log_var_i = q[i], mean[i], var[i]
+               
+        ##### kl_continous #####
+        kl_cont_loss = -0.5 * (1 + z_log_var_i - tf.square(z_mean_i) - tf.exp(z_log_var_i))
+        kl_cont_loss = tf.reduce_sum(kl_cont_loss, axis=0)
+        kl_cont = model.beta * kl_cont_loss    
+
+        ##### kl_categorical #####
+        q_p = tf.nn.softmax(q_i, axis=0) # Convert the categorical codes into probabilities
+        # Entropy of the logits
+        h1 = q_p * tf.math.log(q_p + model.eps_kl)
+        # Cross entropy with the categorical distribution
+        h2 = q_p * tf.math.log(1. / model.discrete_latent + model.eps_kl)
+        kl_disc = tf.reduce_sum(h1 - h2 , axis = 0 ) * model.beta
+        kl_tot = kl_cont + kl_disc
+
+        # append scores                 
+        for k, v in zip(scores.keys(), [kl_cont, kl_disc, kl_tot]):
+            scores[k].append(v)
+
+    return {k: np.concatenate(v) for k, v in scores.items()}
 
 
 def anomaly_scores(model, x: np.ndarray, y: np.ndarray, m: np.ndarray, batch_size=128, **kwargs) -> dict:
