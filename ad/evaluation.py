@@ -223,7 +223,7 @@ def hls_array(filename :str):
 
     def convert_line(line: str) -> np.ndarray:
         numbers = line.split()
-        array = np.array([float(n) for n in numbers])
+        array = np.array([float(n) for n in numbers], dtype=np.float32)
         return array.reshape((1, -1))
 
     # read lines in chunks of three
@@ -253,7 +253,7 @@ def compute_hls_scores(model, q: np.ndarray, mean: np.ndarray, var: np.ndarray):
         kl_cont = model.beta * kl_cont_loss    
 
         ##### kl_categorical #####
-        q_p = tf.nn.softmax(q_i, axis=0) # Convert the categorical codes into probabilities
+        q_p = tf.nn.softmax(q_i, axis=-1) # Convert the categorical codes into probabilities
         # Entropy of the logits
         h1 = q_p * tf.math.log(q_p + model.eps_kl)
         # Cross entropy with the categorical distribution
