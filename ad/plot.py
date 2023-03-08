@@ -383,8 +383,17 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
                      label=label, histtype='step')
             # ROC
             ax2.plot(fpr, tpr, label=f'{k} ({h}), AUC = {round(auc * 100, 2)}%')
+            
+            target_fpr_percent = 0.1
+            target_fpr_index = int(len(fpr) * target_fpr_percent / 100)
+            target_fpr = fpr[target_fpr_index]
 
-        
+            idx = np.abs(target_fpr_percent - fpr).argmin()
+            target_tpr = tpr[idx]
+            # target_tpr = tpr[target_fpr_index]
+
+            print(f"TPR corrispondent to {target_fpr_percent}% of FPR: {target_tpr}")   
+
         ax1.set_xlabel(k, fontsize=fontsize)
         ax1.set_ylabel('Probability', fontsize=fontsize)
         ax1.set_xlim(*plot_range)
