@@ -197,7 +197,7 @@ def compare(*args, cmap=None, save: str = None, title: list = None,
         e_t_max = np.max(x).item()
         e_t_tot = np.sum(x).item()
 
-        ax.set_title(f'{text}\n max E = {round(e_t_max, 2)}; total E = {round(e_t_tot, 2)}', fontsize=fontsize)
+        # ax.set_title(f'{text}\n max E = {round(e_t_max, 2)}; total E = {round(e_t_tot, 2)}', fontsize=fontsize)
         ax.set_xlabel(r'$\eta$ cell', fontsize=fontsize)
         ax.set_ylabel(r'$\phi$ cell', fontsize=fontsize)
 
@@ -402,7 +402,11 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
         ax2.set_xlabel('Background efficiency (FPR)', fontsize=fontsize)
         ax2.set_yscale(scale)
         ax2.set_ylabel('Signal efficiency (TPR)', fontsize=fontsize)
-        ax2.legend(loc=str(legend_roc), fontsize=fontsize - 2)
+        
+        ax2.plot([0, 1], [0, 1], color='gray', lw=1, linestyle='--')  # Aggiunta della bisettrice trattegiata
+        # ax2.legend(loc=str(legend_roc), fontsize=fontsize - 2)
+        ax2.legend([ label, 'random sample',], loc=str(legend_roc),  fontsize=fontsize - 2)  # Aggiunta di 'random sample' nella legenda
+
 
         plt.tight_layout()
 
