@@ -392,7 +392,8 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
             target_tpr = tpr[idx]
             # target_tpr = tpr[target_fpr_index]
 
-            print(f"TPR corrispondent to {target_fpr_percent}% of FPR: {target_tpr}")   
+            print(f"TPR corrispondent to {target_fpr_percent}% of FPR: {target_tpr}")
+            print(f'{k} ({h}), AUC = {round(auc * 100, 2)}%')   
 
         ax1.set_xlabel(k, fontsize=fontsize)
         ax1.set_ylabel('Probability', fontsize=fontsize)
