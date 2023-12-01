@@ -131,7 +131,8 @@ dmypy.json
 
 #add ignore data + weights + ./ad/comet_api
 configs.py
-weights
-data
-results
-./ad/comet_api
+data/
+results/
+score/
+weights/
+./ad/comet_api_key.txt
