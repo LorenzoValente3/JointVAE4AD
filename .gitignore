@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+#add ignore data + weights + ./ad/comet_api
+configs.py
+weights
+data
+results
+./ad/comet_api

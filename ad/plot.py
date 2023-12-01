@@ -330,7 +330,7 @@ def roc_losses(qcd_losses: dict, suep_losses: dict, scale='log', bins=100):
 
 def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100,
                  legend_hist='upper right', legend_roc='lower right', fontsize=18,
-                 x_limits: dict = None, save: str = None, path = 'plot'):
+                 x_limits: dict = None, path: str = None,):
     """Plots a ROC curve using various losses as discriminator"""
     from sklearn.metrics import roc_auc_score, roc_curve
 
@@ -338,7 +338,7 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
     if not isinstance(x_limits, dict):
         x_limits = {}
     # Create the directory to save the plots if it does not already exist
-    if isinstance(save, str):
+    if isinstance(path, str):
         path = utils.makedir(path)
 
     for k, bkg_score in bkg_scores.items():
@@ -411,9 +411,9 @@ def roc_per_mass(bkg_scores: dict, signal_scores: dict, scale='linear', bins=100
 
         plt.tight_layout()
 
-        if isinstance(save, str):
+        if isinstance(path, str):
             path = utils.makedir(path)
-            plt.savefig(os.path.join(path, f'{save}-{k}.png'), bbox_inches='tight')
+            plt.savefig(os.path.join(path, f'{k}.png'), bbox_inches='tight')
 
         plt.show()
 
