@@ -135,4 +135,5 @@ data/
 results/
 score/
 weights/
-./ad/comet_api_key.txt
+/ad/comet_api_key.txt
+evaluation.ipynb
